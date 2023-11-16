@@ -5,11 +5,14 @@
 
 ## Environment
 ---
+`conda create --name <env> --file requirements.txt`
 
 python
 
+
 <!--
-# documentation stuff
+## documentation with sphinx
+
 ```python
 def function(ParamName):
     """[Summary]
@@ -25,4 +28,5 @@ def function(ParamName):
     ReturnValue = ParamName**2
     return ReturnValue
 ```
+
 -->

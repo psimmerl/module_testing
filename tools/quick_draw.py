@@ -27,7 +27,7 @@ rt.gROOT.SetBatch(rt.kTRUE if ROOT_BATCH else rt.kFALSE)
 #   INPUT/OUTPUT FILES SETUP   #
 #------------------------------#
 FN_ROOT_IN = sys.argv[1]
-FN_OUT_PRE = FN_ROOT_IN[:-5] + "_" if FN_OUT_PRE else ""
+FN_OUT_PRE = FN_ROOT_IN[:-5] + ("_" if FN_OUT_PRE else "")
 SOURCE = [s for s in ("lyso", "sodium", "cesium", "cobalt") if s in FN_ROOT_IN][0]
 ################################
 

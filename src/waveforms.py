@@ -22,6 +22,7 @@ import ROOT as rt
 
 def acquire_waveforms(waveform_path, n_events, l: str = "sodium", ov: float = 2.2, thresholds: float = -0.05, **kwargs):
     """wavedump -t self -l sodium --channel-map 1 -n"""
+
     """acquire_waveforms
     Acquire waveforms from the QAQC jig and saves to an hdf5 file.
     """

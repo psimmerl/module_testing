@@ -18,6 +18,14 @@ Use conda to create the python environment
 > if the source data has poission statistics check which source is in the dark box
 
 
+# Data Scan
+---
+
+
+
+
+
+
 ## Optimal/Working Settings
 ```
 the metrics are from ch0 (eventually take averages)

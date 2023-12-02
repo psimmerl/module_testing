@@ -51,3 +51,9 @@ docs/_build/
 *.zip
 *.iso
 
+# *.pdf
+# *.gif
+# *.png
+# *.jpg
+# *.jpeg
+

@@ -1,0 +1,65 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*/__pycache__/*
+
+*.pyc
+*.pyo
+*.pyd
+*.py[cod]
+*$py.class
+
+# C extensions
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Vim
+*.swp
+
+# Jupyter
+.ipynb_checkpoints/
+.ipynb_checkpoints/*
+*/.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# VSCode
+.vs/
+.vscode*
+.build
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Sphinx
+docs/_build/
+
+# Data & Other Files
+*.out
+*.log
+# *.csv
+
+*.pkl
+
+*.hdf5
+*.root
+
+*.gz
+*.xz
+*.tar
+*.zip
+*.iso
+
+*.pdf
+*.gif
+*.png
+*.jpg
+*.jpeg

@@ -45,12 +45,11 @@ docs/_build/
 # Data & Other Files
 *.out
 *.log
+
+# *.pkl
 # *.csv
-
-*.pkl
-
-*.hdf5
-*.root
+# *.hdf5
+# *.root
 
 *.gz
 *.xz

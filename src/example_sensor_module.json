@@ -1,0 +1,27 @@
+{
+    "Vtt" : -0.025,
+    "Vov" : -0.025,
+    "root_hist_file" : "file_name.root",
+    "rdf_file" : "file_name.root",
+    "tec_temps" : "???",
+    "spe_fits" : [
+        [[q_ave, q_err], [q_std, q_std_err]],
+        [[q_ave, q_err], [q_std, q_std_err]],
+        [[q_ave, q_err], [q_std, q_std_err]],
+        [[q_ave, q_err], [q_std, q_std_err]],
+    ],
+    "sodium_fits" : [
+        [[q_ave, q_err], [q_std, q_std_err]],
+        [[q_ave, q_err], [q_std, q_std_err]],
+        [[q_ave, q_err], [q_std, q_std_err]],
+        [[q_ave, q_err], [q_std, q_std_err]],
+    ],
+    "cobalt_fits" : -1,
+    "ly_rms" : [0, 0],
+    "ly_crosstalk" : [
+        0,
+        1,
+        2,
+    ],
+
+}

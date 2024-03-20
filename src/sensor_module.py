@@ -2,6 +2,7 @@
 '''
 import numpy as np
 import math
+import pandas as pd
 
 import ROOT as rt
 from ROOT import TFile, TNtuple, TTree, RDataFrame
@@ -9,8 +10,7 @@ from ROOT import TCanvas, TLegend, TLatex, TLine, TBox
 from ROOT import TH1D, TH2D, TGraph, TGraphErrors
 from ROOT import TF1, TMath
 import json
-
-
+import os
 
 class sensor_module:
     sources = ['lyso', 'sodium', 'cesium', 'cobalt', 'source'] #'source' included to account for data taking with weird naming bug
@@ -22,8 +22,11 @@ class sensor_module:
     'sodium': (511, 0, 1),
     'cesium': (662, 0, 1),
     'cobalt': (122, 0, 1)
-} 
-    def __init__(self, fname: str=None, id: int=None, ov: float=None, tt: int=None, source: str=None, n_spe: int=None, n_src: int=None, temps: list=None, rotated: bool=False, calibrate: bool=True, json_fname: str=None) -> None:
+    } 
+    path_to_quickdraw = ''
+    path_to_jig_calibration = '/Users/alexander_albert/Documents/BTL_Work/code/module_testing_withData/notebooks/plots/calibrationTests/fixed_ch5/jig_calibration_4modules_withErrors.csv'
+
+    def __init__(self, fname: str=None, id: int=None, ov: float=None, tt: int=None, source: str=None, n_spe: int=None, n_src: int=None, temps: list=None, rotated: bool=False, jig_calibrate: bool=True, json_fname: str=None) -> None:
         '''Module
         loads a root file with the stored RDF and integrations
         contains the methods used to analyze and perform QAQC on a module
@@ -77,7 +80,7 @@ class sensor_module:
             self.ov = ov #will be set to passed value, otherwise it will be None
         #print(self.ov)
         #extract out number of source name
-        
+        self.jig_calibrate = jig_calibrate
         if source not in sensor_module.sources and source!=None:
             raise RuntimeError("Invalid Source Specified! Allowed Sources are 'lyso', 'sodium', 'cesium', 'cobalt', and 'source'")
         self.source = source
@@ -112,9 +115,9 @@ class sensor_module:
         ### Now, we compute fit parameters, LYSO arrays, and so forth using helper methods
         #store dictionary with channel-by-channel fit information for SPE hists
         #this information will be from hists outputtted by "analyze-waveforms" 
-        self.spectra_params_spe = self.get_spectra_params_spe(fname)
+        self.spectra_params_spe = self.get_spectra_params_spe(fname, self.jig_calibrate)
         #print(self.spectra_params_spe)
-        self.spectra_params_src = self.get_spectra_params_src(fname, self.source)
+        self.spectra_params_src = self.get_spectra_params_src(fname, self.source, self.jig_calibrate)
         #print(self.spectra_params_src)
         
         
@@ -164,6 +167,7 @@ class sensor_module:
     
     # **** #
     def store(self, filename: str=None): # example
+        "Generate JSON file with all 'sensor_module' fields stored in dictionary"
         if filename==None:
             filename = self.fname.replace('.root', '.json')
         with open(filename, "w") as outfile:
@@ -307,7 +311,7 @@ class sensor_module:
 
         
 
-    def get_spectra_params_src(self, inputFile: str=None, source: str=None):
+    def get_spectra_params_src(self, inputFile: str=None, source: str=None, calibrate: bool=True):
         '''returns dictionary with fit parameters for each channel from source spectra'''
         if inputFile==None:
             inputFile==self.fname
@@ -322,11 +326,17 @@ class sensor_module:
         for channel in sensor_module.channels:
             hist = tfile.Get(f'{source}_ch{channel}')
             mu, mue, sig, A, p0, p1 = self.fit_spectra(hist)
-            spectra_params_dict[f"ch{channel}"] = (mu*1000*sensor_module.ATTENUATION_FACTOR, mue*1000*sensor_module.ATTENUATION_FACTOR)
-
+            if calibrate and os.path.exists(sensor_module.path_to_jig_calibration):
+                calibration_data = pd.read_csv(sensor_module.path_to_jig_calibration, delimiter=',')
+                mu_cal = calibration_data.iloc[1][f'ch{channel}']*mu
+                mue_cal = mu_cal*((calibration_data.iloc[4][f'ch{channel}']/calibration_data.iloc[1][f'ch{channel}'])**2+(mue/mu)**2)**0.5
+            else:
+                mu_cal = mu; mue_cal = mue
+            spectra_params_dict[f"ch{channel}"] = (mu_cal*1000*sensor_module.ATTENUATION_FACTOR, mue_cal*1000*sensor_module.ATTENUATION_FACTOR)
+            
         return spectra_params_dict                 
 
-    def get_spectra_params_spe(self, inputFile: str=None):
+    def get_spectra_params_spe(self, inputFile: str=None, calibrate: bool=True):
         '''returns dictionary with fit parameters for each channel from spectra
         we use a different function for spe params because we do not re-fit after Tony's 
         original fits, like Paul does for source spectra
@@ -341,11 +351,19 @@ class sensor_module:
         for channel in sensor_module.channels:
             fit = tfile.Get(f'spe_ch{channel}_fit') # will extract single spe charge + uncertainty directly from fit
             mu, mue = fit.GetParameter(3), fit.GetParameter(5)
-            spectra_params_dict[f"ch{channel}"] = (mu, mue)
+            if calibrate and os.path.exists(sensor_module.path_to_jig_calibration):
+                calibration_data = pd.read_csv(str(sensor_module.path_to_jig_calibration), delimiter=',')
+                mu_cal = calibration_data.iloc[0][f'ch{channel}']*mu #spe calibration values at row 0
+                mue_cal = mu_cal*((calibration_data.iloc[3][f'ch{channel}']/calibration_data.iloc[0][f'ch{channel}'])**2+(mue/mu)**2)**0.5 #spe error at row 3
+            else:
+                mu_cal = mu; mue_cal = mue
+            spectra_params_dict[f"ch{channel}"] = (mu_cal, mue_cal)
         return spectra_params_dict   
 
 
     def get_LY_dict(self, spectra_dict: dict=None, LY_type: str="src"):
+        '''returns dictionary with either spe charge or charge from source events. Each key is a bar, and each value is [[left side LY, err]
+        [average bar LY, err], [right side LY, err]]'''
         if LY_type not in ['spe', 'src']:
             raise RuntimeError("Invalid LY type specified! Should be 'spe' or 'src'.")
         if spectra_dict == None and LY_type == "spe":
@@ -363,6 +381,9 @@ class sensor_module:
         return ly_dict
 
     def get_LY_dict_pe(self, ly_spe_dict: dict=None, ly_src_dict: dict=None):
+        '''returns dictionary with number of photoelectrons from source events (normalized by SPE charge).
+        Each key is a bar, and each value is [[left side LY, err]
+        [average bar LY, err], [right side LY, err]]'''
         if ly_spe_dict==None:
             ly_spe_dict = self.get_LY_array(None, LY_type="spe")
         if ly_src_dict==None:
@@ -401,10 +422,8 @@ class sensor_module:
         return (ly_arr[:,0,0]-ly_arr[:,2,0])/(ly_arr[:,0,0]+ly_arr[:,2,0])
 
     
-    def plot_spectra(self, source: str='spe'):
-        pass
-    
-    def plot_charge_yield(self, source: str='spe'):
+    def plot_spectra(self, source: str='spe', outputDir = None):
+        #will call quick-draw.py
         pass
 
     def plot_light_yield(self) -> (rt.TH1):
@@ -414,6 +433,7 @@ class sensor_module:
         pass
 
     def plot_crosstalk_matrix(self):
+        #will call quick-draw.py equivalent for crosstalk
         pass
 
     def get_saturation_counts(self):
